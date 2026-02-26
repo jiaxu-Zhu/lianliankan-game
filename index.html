@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>连连看</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 10px;
+        }
+        
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 5px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .info-bar {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            color: white;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .info-item {
+            background: rgba(255,255,255,0.2);
+            padding: 8px 15px;
+            border-radius: 20px;
+        }
+        
+        .game-container {
+            background: white;
+            border-radius: 15px;
+            padding: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        
+        .game-board {
+            display: grid;
+            gap: 3px;
+            position: relative;
+        }
+        
+        .cell {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(145deg, #f0f0f0, #e0e0e0);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            transition: all 0.2s ease;
+            box-shadow: 3px 3px 6px rgba(0,0,0,0.1), -3px -3px 6px rgba(255,255,255,0.8);
+        }
+        
+        .cell:hover {
+            transform: scale(1.05);
+        }
+        
+        .cell.selected {
+            background: linear-gradient(145deg, #ffeb3b, #ffc107);
+            box-shadow: inset 2px 2px 5px rgba(0,0,0,0.2);
+            animation: pulse 0.5s ease-in-out;
+        }
+        
+        .cell.matched {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .cell.empty {
+            background: transparent;
+            box-shadow: none;
+            cursor: default;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        .line {
+            position: absolute;
+            background: #4CAF50;
+            border-radius: 3px;
+            z-index: 10;
+            pointer-events: none;
+            animation: drawLine 0.3s ease-out;
+        }
+        
+        @keyframes drawLine {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 12px 25px;
+            font-size: 1em;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(145deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(145deg, #f093fb, #f5576c);
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(245, 87, 108, 0.4);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        
+        .modal.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 90%;
+            animation: popIn 0.3s ease-out;
+        }
+        
+        @keyframes popIn {
+            from { transform: scale(0.5); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        
+        .modal-content h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 2em;
+        }
+        
+        .modal-content p {
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+        }
+        
+        .difficulty-select {
+            margin-bottom: 15px;
+        }
+        
+        .difficulty-btn {
+            padding: 10px 20px;
+            margin: 5px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .difficulty-btn.active,
+        .difficulty-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        @media (max-width: 500px) {
+            .cell {
+                width: 38px;
+                height: 38px;
+                font-size: 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.5em;
+            }
+            
+            .info-bar {
+                font-size: 0.9em;
+            }
+            
+            .info-item {
+                padding: 6px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎮 连连看</h1>
+    </div>
+    
+    <div class="info-bar">
+        <div class="info-item">⏱️ 时间：<span id="time">0</span>秒</div>
+        <div class="info-item">🔄 步数：<span id="moves">0</span></div>
+        <div class="info-item">💯 分数：<span id="score">0</span></div>
+    </div>
+    
+    <div class="game-container">
+        <div class="game-board" id="board"></div>
+    </div>
+    
+    <div class="controls">
+        <button class="btn btn-primary" onclick="startNewGame()">🔄 新游戏</button>
+        <button class="btn btn-secondary" onclick="shuffleBoard()">🔀 打乱</button>
+    </div>
+    
+    <div class="modal" id="winModal">
+        <div class="modal-content">
+            <h2>🎉 恭喜获胜！</h2>
+            <p>用时：<span id="finalTime">0</span>秒<br>步数：<span id="finalMoves">0</span><br>得分：<span id="finalScore">0</span></p>
+            <button class="btn btn-primary" onclick="closeModal(); startNewGame()">再玩一次</button>
+        </div>
+    </div>
+    
+    <div class="modal" id="newGameModal">
+        <div class="modal-content">
+            <h2>🎮 新游戏</h2>
+            <div class="difficulty-select">
+                <button class="difficulty-btn active" onclick="setDifficulty('easy')">简单</button>
+                <button class="difficulty-btn" onclick="setDifficulty('medium')">中等</button>
+                <button class="difficulty-btn" onclick="setDifficulty('hard')">困难</button>
+            </div>
+            <button class="btn btn-primary" onclick="confirmNewGame()">开始游戏</button>
+        </div>
+    </div>
+
+    <script>
+        const emojis = ['🍎', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🥑'];
+        
+        let board = [];
+        let rows = 8;
+        let cols = 8;
+        let selectedCell = null;
+        let time = 0;
+        let moves = 0;
+        let score = 0;
+        let timer = null;
+        let gameActive = false;
+        let currentDifficulty = 'easy';
+        
+        const difficultySettings = {
+            easy: { rows: 6, cols: 6 },
+            medium: { rows: 8, cols: 8 },
+            hard: { rows: 10, cols: 10 }
+        };
+        
+        function init() {
+            createBoard();
+            startTimer();
+            gameActive = true;
+        }
+        
+        function setDifficulty(level) {
+            currentDifficulty = level;
+            document.querySelectorAll('.difficulty-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.textContent === (level === 'easy' ? '简单' : level === 'medium' ? '中等' : '困难')) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+        
+        function confirmNewGame() {
+            document.getElementById('newGameModal').classList.remove('show');
+            startNewGame();
+        }
+        
+        function closeModal() {
+            document.getElementById('winModal').classList.remove('show');
+        }
+        
+        function startNewGame() {
+            stopTimer();
+            const settings = difficultySettings[currentDifficulty];
+            rows = settings.rows;
+            cols = settings.cols;
+            board = [];
+            selectedCell = null;
+            time = 0;
+            moves = 0;
+            score = 0;
+            updateInfo();
+            createBoard();
+            startTimer();
+            gameActive = true;
+        }
+        
+        function createBoard() {
+            const boardEl = document.getElementById('board');
+            boardEl.innerHTML = '';
+            boardEl.style.gridTemplateColumns = `repeat(${cols + 2}, 1fr)`;
+            
+            // 计算需要的对数
+            const totalCells = (rows + 2) * (cols + 2);
+            const pairCount = Math.floor(totalCells / 2);
+            
+            // 生成成对的图标
+            let icons = [];
+            for (let i = 0; i < pairCount; i++) {
+                const emoji = emojis[i % emojis.length];
+                icons.push(emoji, emoji);
+            }
+            
+            // 填充四周为空，中间随机排列
+            for (let r = 0; r < rows + 2; r++) {
+                board[r] = [];
+                for (let c = 0; c < cols + 2; c++) {
+                    if (r === 0 || r === rows + 1 || c === 0 || c === cols + 1) {
+                        board[r][c] = null; // 边界为空
+                    } else {
+                        const idx = Math.floor(Math.random() * icons.length);
+                        board[r][c] = icons.splice(idx, 1)[0];
+                    }
+                    
+                    const cell = document.createElement('button');
+                    cell.className = 'cell';
+                    cell.dataset.row = r;
+                    cell.dataset.col = c;
+                    
+                    if (board[r][c] === null) {
+                        cell.classList.add('empty');
+                    } else {
+                        cell.textContent = board[r][c];
+                        cell.onclick = () => handleCellClick(r, c, cell);
+                    }
+                    
+                    boardEl.appendChild(cell);
+                }
+            }
+        }
+        
+        function shuffleBoard() {
+            if (!gameActive) return;
+            
+            // 收集所有剩余的图标
+            let remainingIcons = [];
+            for (let r = 0; r < rows + 2; r++) {
+                for (let c = 0; c < cols + 2; c++) {
+                    if (board[r][c] !== null) {
+                        remainingIcons.push(board[r][c]);
+                    }
+                }
+            }
+            
+            // 打乱
+            for (let i = remainingIcons.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [remainingIcons[i], remainingIcons[j]] = [remainingIcons[j], remainingIcons[i]];
+            }
+            
+            // 重新放置
+            let idx = 0;
+            for (let r = 0; r < rows + 2; r++) {
+                for (let c = 0; c < cols + 2; c++) {
+                    if (board[r][c] !== null) {
+                        board[r][c] = remainingIcons[idx++];
+                    }
+                }
+            }
+            
+            // 更新显示
+            renderBoard();
+            selectedCell = null;
+        }
+        
+        function renderBoard() {
+            const cells = document.querySelectorAll('.cell');
+            cells.forEach(cell => {
+                const r = parseInt(cell.dataset.row);
+                const c = parseInt(cell.dataset.col);
+                
+                if (board[r][c] === null) {
+                    cell.textContent = '';
+                    cell.classList.add('empty');
+                    cell.classList.remove('selected');
+                } else {
+                    cell.textContent = board[r][c];
+                    cell.classList.remove('empty');
+                }
+            });
+        }
+        
+        function handleCellClick(r, c, cell) {
+            if (!gameActive || board[r][c] === null) return;
+            
+            // 清除之前的选中
+            if (selectedCell) {
+                selectedCell.classList.remove('selected');
+            }
+            
+            // 如果点击同一个单元格，取消选中
+            if (selectedCell && selectedCell.dataset.row == r && selectedCell.dataset.col == c) {
+                selectedCell = null;
+                return;
+            }
+            
+            // 选中当前单元格
+            cell.classList.add('selected');
+            selectedCell = cell;
+            
+            // 如果有两个选中，检查是否可以连接
+            const prevR = parseInt(selectedCell.dataset.row);
+            const prevC = parseInt(selectedCell.dataset.col);
+            
+            if (prevR === r && prevC === c) return;
+            
+            // 检查图标是否相同
+            if (board[prevR][prevC] === board[r][c]) {
+                // 检查是否可以连接
+                const path = findPath(prevR, prevC, r, c);
+                if (path) {
+                    moves++;
+                    score += 10 + Math.max(0, 5 - moves);
+                    updateInfo();
+                    drawPath(path);
+                    
+                    // 延迟消除
+                    setTimeout(() => {
+                        eliminate(prevR, prevC, r, c);
+                        selectedCell = null;
+                        checkWin();
+                    }, 300);
+                } else {
+                    // 无法连接，抖动提示
+                    cell.classList.remove('selected');
+                    selectedCell = null;
+                }
+            } else {
+                // 图标不同，切换选中
+                selectedCell.classList.remove('selected');
+                selectedCell = cell;
+            }
+        }
+        
+        function findPath(r1, c1, r2, c2) {
+            // 直接相连（0 折）
+            if (canConnectDirectly(r1, c1, r2, c2)) {
+                return [{r: r1, c: c1}, {r: r2, c: c2}];
+            }
+            
+            // 一折相连
+            const oneTurn = findOneTurnPath(r1, c1, r2, c2);
+            if (oneTurn) return oneTurn;
+            
+            // 两折相连
+            const twoTurn = findTwoTurnPath(r1, c1, r2, c2);
+            if (twoTurn) return twoTurn;
+            
+            return null;
+        }
+        
+        function canConnectDirectly(r1, c1, r2, c2) {
+            if (r1 !== r2 && c1 !== c2) return false;
+            
+            if (r1 === r2) {
+                const min = Math.min(c1, c2);
+                const max = Math.max(c1, c2);
+                for (let c = min + 1; c < max; c++) {
+                    if (board[r1][c] !== null) return false;
+                }
+                return true;
+            } else {
+                const min = Math.min(r1, r2);
+                const max = Math.max(r1, r2);
+                for (let r = min + 1; r < max; r++) {
+                    if (board[r][c1] !== null) return false;
+                }
+                return true;
+            }
+        }
+        
+        function findOneTurnPath(r1, c1, r2, c2) {
+            // 尝试两个转角点
+            const corner1 = {r: r1, c: c2};
+            const corner2 = {r: r2, c: c1};
+            
+            if (board[corner1.r][corner1.c] === null &&
+                canConnectDirectly(r1, c1, corner1.r, corner1.c) &&
+                canConnectDirectly(corner1.r, corner1.c, r2, c2)) {
+                return [{r: r1, c: c1}, corner1, {r: r2, c: c2}];
+            }
+            
+            if (board[corner2.r][corner2.c] === null &&
+                canConnectDirectly(r1, c1, corner2.r, corner2.c) &&
+                canConnectDirectly(corner2.r, corner2.c, r2, c2)) {
+                return [{r: r1, c: c1}, corner2, {r: r2, c: c2}];
+            }
+            
+            return null;
+        }
+        
+        function findTwoTurnPath(r1, c1, r2, c2) {
+            // 从起点水平扫描
+            for (let c = 0; c < cols + 2; c++) {
+                if (c === c1) continue;
+                if (board[r1][c] !== null) continue;
+                
+                // 检查能否从 (r1,c1) 到 (r1,c)
+                if (!canConnectDirectly(r1, c1, r1, c)) continue;
+                
+                // 检查能否从 (r1,c) 一折到达 (r2,c2)
+                const corner = {r: r2, c: c};
+                if (board[corner.r][corner.c] === null &&
+                    canConnectDirectly(r1, c, corner.r, corner.c) &&
+                    canConnectDirectly(corner.r, corner.c, r2, c2)) {
+                    return [{r: r1, c: c1}, {r: r1, c: c}, corner, {r: r2, c: c2}];
+                }
+            }
+            
+            // 从起点垂直扫描
+            for (let r = 0; r < rows + 2; r++) {
+                if (r === r1) continue;
+                if (board[r][c1] !== null) continue;
+                
+                if (!canConnectDirectly(r1, c1, r, c1)) continue;
+                
+                const corner = {r: r, c: c2};
+                if (board[corner.r][corner.c] === null &&
+                    canConnectDirectly(r, c1, corner.r, corner.c) &&
+                    canConnectDirectly(corner.r, corner.c, r2, c2)) {
+                    return [{r: r1, c: c1}, {r: r, c: c1}, corner, {r: r2, c: c2}];
+                }
+            }
+            
+            return null;
+        }
+        
+        function drawPath(path) {
+            const boardEl = document.getElementById('board');
+            const cellWidth = boardEl.offsetWidth / (cols + 2);
+            const cellHeight = boardEl.offsetHeight / (rows + 2);
+            
+            for (let i = 0; i < path.length - 1; i++) {
+                const p1 = path[i];
+                const p2 = path[i + 1];
+                
+                const line = document.createElement('div');
+                line.className = 'line';
+                
+                const x1 = p1.c * cellWidth + cellWidth / 2;
+                const y1 = p1.r * cellHeight + cellHeight / 2;
+                const x2 = p2.c * cellWidth + cellWidth / 2;
+                const y2 = p2.r * cellHeight + cellHeight / 2;
+                
+                if (p1.r === p2.r) {
+                    // 水平线
+                    line.style.height = '4px';
+                    line.style.width = Math.abs(x2 - x1) + 'px';
+                    line.style.left = Math.min(x1, x2) + 'px';
+                    line.style.top = (y1 - 2) + 'px';
+                } else {
+                    // 垂直线
+                    line.style.width = '4px';
+                    line.style.height = Math.abs(y2 - y1) + 'px';
+                    line.style.left = (x1 - 2) + 'px';
+                    line.style.top = Math.min(y1, y2) + 'px';
+                }
+                
+                boardEl.appendChild(line);
+                
+                // 动画结束后移除
+                setTimeout(() => line.remove(), 500);
+            }
+        }
+        
+        function eliminate(r1, c1, r2, c2) {
+            board[r1][c1] = null;
+            board[r2][c2] = null;
+            
+            const cell1 = document.querySelector(`[data-row="${r1}"][data-col="${c1}"]`);
+            const cell2 = document.querySelector(`[data-row="${r2}"][data-col="${c2}"]`);
+            
+            cell1.classList.add('matched');
+            cell2.classList.add('matched');
+        }
+        
+        function checkWin() {
+            let remaining = 0;
+            for (let r = 0; r < rows + 2; r++) {
+                for (let c = 0; c < cols + 2; c++) {
+                    if (board[r][c] !== null) {
+                        remaining++;
+                        break;
+                    }
+                }
+            }
+            
+            if (remaining === 0) {
+                stopTimer();
+                gameActive = false;
+                document.getElementById('finalTime').textContent = time;
+                document.getElementById('finalMoves').textContent = moves;
+                document.getElementById('finalScore').textContent = score;
+                document.getElementById('winModal').classList.add('show');
+            }
+        }
+        
+        function startTimer() {
+            timer = setInterval(() => {
+                time++;
+                updateInfo();
+            }, 1000);
+        }
+        
+        function stopTimer() {
+            if (timer) {
+                clearInterval(timer);
+                timer = null;
+            }
+        }
+        
+        function updateInfo() {
+            document.getElementById('time').textContent = time;
+            document.getElementById('moves').textContent = moves;
+            document.getElementById('score').textContent = score;
+        }
+        
+        // 初始化游戏
+        init();
+        
+        // 窗口大小改变时重新计算
+        window.addEventListener('resize', () => {
+            // 可以添加响应式处理逻辑
+        });
+    </script>
+</body>
+</html>
