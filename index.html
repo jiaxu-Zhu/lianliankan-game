@@ -366,7 +366,7 @@
     <div class="modal" id="versionModal">
         <div class="modal-content">
             <h2>📋 版本信息</h2>
-            <p><strong>当前版本:</strong> v1.4.1</p>
+            <p><strong>当前版本:</strong> v1.4.2</p>
             <p><strong>更新时间:</strong> 2026-02-27</p>
             <hr style="margin: 15px 0; border: none; border-top: 1px solid #ddd;">
             <p><strong>更新内容:</strong></p>
@@ -377,6 +377,7 @@
                 <li>优化棋盘自适应屏幕大小</li>
                 <li>将版本按钮移至页面底部，优化移动端体验</li>
                 <li>修复打乱按钮 bug，保持原有图标不变仅重新排列</li>
+                <li>简单难度调整为 4×4 网格</li>
             </ul>
             <button class="btn btn-primary" onclick="hideVersion()" style="margin-top: 15px;">确定</button>
         </div>
@@ -397,7 +398,7 @@
         let currentDifficulty = 'easy';
         
         const difficultySettings = {
-            easy: { rows: 4, cols: 6 },
+            easy: { rows: 4, cols: 4 },
             medium: { rows: 6, cols: 8 },
             hard: { rows: 8, cols: 10 }
         };
@@ -590,6 +591,12 @@
                 [remainingIcons[i], remainingIcons[j]] = [remainingIcons[j], remainingIcons[i]];
             }
             
+            // 打乱空位置顺序
+            for (let i = emptyPositions.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [emptyPositions[i], emptyPositions[j]] = [emptyPositions[j], emptyPositions[i]];
+            }
+            
             // 清空中间区域
             for (let r = 1; r <= rows; r++) {
                 for (let c = 1; c <= cols; c++) {
@@ -597,47 +604,17 @@
                 }
             }
             
-            // 重新成对放置图标 - 使用分散策略
+            // 依次将成对的图标放到空位置上
             let pairIdx = 0;
             const totalPairs = remainingIcons.length / 2;
-            let filledPositions = new Set();
             
-            // 第一轮：每隔一个位置放一对，确保分散
-            for (let step = 0; step < emptyPositions.length && pairIdx < totalPairs; step += 2) {
-                const pos1 = emptyPositions[step];
-                if (filledPositions.has(`${pos1.r},${pos1.c}`)) continue;
+            while (pairIdx < totalPairs && emptyPositions.length >= 2) {
+                const pos1 = emptyPositions.pop();
+                const pos2 = emptyPositions.pop();
                 
-                // 找一个不相邻的空位
-                let pos2 = null;
-                for (const other of emptyPositions) {
-                    const key = `${other.r},${other.c}`;
-                    if (!filledPositions.has(key)) {
-                        // 检查是否相邻（包括对角线）
-                        const isAdjacent = Math.abs(other.r - pos1.r) <= 1 && 
-                                          Math.abs(other.c - pos1.c) <= 1;
-                        if (!isAdjacent) {
-                            pos2 = other;
-                            break;
-                        }
-                    }
-                }
-                
-                if (pos2) {
-                    board[pos1.r][pos1.c] = remainingIcons[pairIdx * 2];
-                    board[pos2.r][pos2.c] = remainingIcons[pairIdx * 2 + 1];
-                    filledPositions.add(`${pos1.r},${pos1.c}`);
-                    filledPositions.add(`${pos2.r},${pos2.c}`);
-                    pairIdx++;
-                }
-            }
-            
-            // 第二轮：如果还有剩余位置，任意配对填充
-            let remainingPositions = emptyPositions.filter(p => !filledPositions.has(`${p.r},${p.c}`));
-            while (remainingPositions.length >= 2 && pairIdx < totalPairs) {
-                const pos1 = remainingPositions.pop();
-                const pos2 = remainingPositions.pop();
                 board[pos1.r][pos1.c] = remainingIcons[pairIdx * 2];
                 board[pos2.r][pos2.c] = remainingIcons[pairIdx * 2 + 1];
+                
                 pairIdx++;
             }
             
