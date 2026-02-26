@@ -366,7 +366,7 @@
     <div class="modal" id="versionModal">
         <div class="modal-content">
             <h2>📋 版本信息</h2>
-            <p><strong>当前版本:</strong> v1.4.3</p>
+            <p><strong>当前版本:</strong> v1.4.4</p>
             <p><strong>更新时间:</strong> 2026-02-27</p>
             <hr style="margin: 15px 0; border: none; border-top: 1px solid #ddd;">
             <p><strong>更新内容:</strong></p>
@@ -379,6 +379,7 @@
                 <li>修复打乱按钮 bug，保持原有图标不变仅重新排列</li>
                 <li>简单难度调整为 4×4 网格</li>
                 <li>彻底修复打乱按钮导致图标消失的严重 bug</li>
+                <li>优化打乱逻辑：只打乱位置不改变图标配对关系</li>
             </ul>
             <button class="btn btn-primary" onclick="hideVersion()" style="margin-top: 15px;">确定</button>
         </div>
@@ -567,61 +568,38 @@
         function shuffleBoard() {
             if (!gameActive) return;
             
-            // 收集所有剩余的图标
-            let remainingIcons = [];
+            // 收集所有剩余的图标及其位置
+            let iconPositions = [];
             
             for (let r = 1; r <= rows; r++) {
                 for (let c = 1; c <= cols; c++) {
                     if (board[r][c] !== null) {
-                        remainingIcons.push(board[r][c]);
+                        iconPositions.push({r, c, icon: board[r][c]});
                     }
                 }
             }
             
             // 如果没有剩余图标或无法配对，直接返回
-            if (remainingIcons.length < 2 || remainingIcons.length % 2 !== 0) {
+            if (iconPositions.length < 2 || iconPositions.length % 2 !== 0) {
                 return;
             }
             
-            // 打乱图标顺序
-            for (let i = remainingIcons.length - 1; i > 0; i--) {
+            // 只打乱位置，不改变图标本身
+            for (let i = iconPositions.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
-                [remainingIcons[i], remainingIcons[j]] = [remainingIcons[j], remainingIcons[i]];
+                [iconPositions[i], iconPositions[j]] = [iconPositions[j], iconPositions[i]];
             }
             
-            // 清空中间区域
+            // 清空棋盘
             for (let r = 1; r <= rows; r++) {
                 for (let c = 1; c <= cols; c++) {
                     board[r][c] = null;
                 }
             }
             
-            // 生成所有可用位置并打乱
-            let allPositions = [];
-            for (let r = 1; r <= rows; r++) {
-                for (let c = 1; c <= cols; c++) {
-                    allPositions.push({r, c});
-                }
-            }
-            
-            // 打乱位置顺序
-            for (let i = allPositions.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [allPositions[i], allPositions[j]] = [allPositions[j], allPositions[i]];
-            }
-            
-            // 依次将成对的图标放到位置上
-            let pairIdx = 0;
-            const totalPairs = remainingIcons.length / 2;
-            
-            while (pairIdx < totalPairs && allPositions.length >= 2) {
-                const pos1 = allPositions.pop();
-                const pos2 = allPositions.pop();
-                
-                board[pos1.r][pos1.c] = remainingIcons[pairIdx * 2];
-                board[pos2.r][pos2.c] = remainingIcons[pairIdx * 2 + 1];
-                
-                pairIdx++;
+            // 将图标放到新的位置
+            for (const item of iconPositions) {
+                board[item.r][item.c] = item.icon;
             }
             
             // 更新显示
