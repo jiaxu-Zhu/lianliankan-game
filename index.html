@@ -256,7 +256,7 @@
     </div>
     
     <div class="controls">
-        <button class="btn btn-primary" onclick="startNewGame()">🔄 新游戏</button>
+        <button class="btn btn-primary" onclick="showNewGameModal()">🔄 新游戏</button>
         <button class="btn btn-secondary" onclick="shuffleBoard()">🔀 打乱</button>
     </div>
     
@@ -304,6 +304,10 @@
             createBoard();
             startTimer();
             gameActive = true;
+        }
+        
+        function showNewGameModal() {
+            document.getElementById('newGameModal').classList.add('show');
         }
         
         function setDifficulty(level) {
