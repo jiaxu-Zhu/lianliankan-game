@@ -770,33 +770,41 @@
         
         function drawPath(path) {
             const boardEl = document.getElementById('board');
-            const cellWidth = boardEl.offsetWidth / (cols + 2);
-            const cellHeight = boardEl.offsetHeight / (rows + 2);
             
             for (let i = 0; i < path.length - 1; i++) {
                 const p1 = path[i];
                 const p2 = path[i + 1];
                 
-                // 计算中心点坐标
-                const x1 = p1.c * cellWidth + cellWidth / 2;
-                const y1 = p1.r * cellHeight + cellHeight / 2;
-                const x2 = p2.c * cellWidth + cellWidth / 2;
-                const y2 = p2.r * cellHeight + cellHeight / 2;
+                // 获取两个格子的 DOM 元素来计算精确的中心位置
+                const cell1 = document.querySelector(`.cell[data-row='${p1.r}'][data-col='${p1.c}']`);
+                const cell2 = document.querySelector(`.cell[data-row='${p2.r}'][data-col='${p2.c}']`);
+                
+                if (!cell1 || !cell2) continue;
+                
+                const rect1 = cell1.getBoundingClientRect();
+                const rect2 = cell2.getBoundingClientRect();
+                const boardRect = boardEl.getBoundingClientRect();
+                
+                // 计算相对于棋盘容器的中心点坐标
+                const x1 = rect1.left - boardRect.left + rect1.width / 2;
+                const y1 = rect1.top - boardRect.top + rect1.height / 2;
+                const x2 = rect2.left - boardRect.left + rect2.width / 2;
+                const y2 = rect2.top - boardRect.top + rect2.height / 2;
                 
                 const line = document.createElement('div');
                 line.className = 'line';
                 
                 if (p1.r === p2.r) {
                     // 水平线 - 从中心到中心
-                    line.style.height = '4px';
+                    line.style.height = '3px';
                     line.style.width = Math.abs(x2 - x1) + 'px';
                     line.style.left = Math.min(x1, x2) + 'px';
-                    line.style.top = (y1 - 2) + 'px';
+                    line.style.top = (y1 - 1.5) + 'px';
                 } else {
                     // 垂直线 - 从中心到中心
-                    line.style.width = '4px';
+                    line.style.width = '3px';
                     line.style.height = Math.abs(y2 - y1) + 'px';
-                    line.style.left = (x1 - 2) + 'px';
+                    line.style.left = (x1 - 1.5) + 'px';
                     line.style.top = Math.min(y1, y2) + 'px';
                 }
                 
