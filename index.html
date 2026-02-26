@@ -344,10 +344,7 @@
         <button class="btn btn-secondary" id="musicBtn" onclick="toggleMusic()">🎵 音乐：关闭</button>
     </div>
     
-    <!-- 背景音乐 -->
-    <audio id="bgMusic" loop>
-        <source src="https://music.163.com/song/media/outer/url?id=1824045029.mp3" type="audio/mpeg">
-    </audio>
+    <!-- 背景音乐 - 使用 Web Audio API 生成 -->
     
     <div class="modal" id="winModal">
         <div class="modal-content">
@@ -372,13 +369,13 @@
     <div class="modal" id="versionModal">
         <div class="modal-content">
             <h2>📋 版本信息</h2>
-            <p><strong>当前版本:</strong> v1.4.6</p>
+            <p><strong>当前版本:</strong> v1.4.7</p>
             <p><strong>更新时间:</strong> 2026-02-27</p>
             <hr style="margin: 15px 0; border: none; border-top: 1px solid #ddd;">
             <p><strong>更新内容:</strong></p>
             <ul style="text-align: left; margin-left: 20px; line-height: 1.8;">
-                <li>新增动感欢快的背景音乐</li>
-                <li>增加音乐开关按钮，可随时打开或关闭音乐</li>
+                <li>使用 Web Audio API 生成背景音乐，确保音乐可以正常播放</li>
+                <li>欢快的 C 大调旋律，循环播放</li>
             </ul>
             <button class="btn btn-primary" onclick="hideVersion()" style="margin-top: 15px;">确定</button>
         </div>
@@ -398,6 +395,22 @@
         let gameActive = false;
         let currentDifficulty = 'easy';
         let musicPlaying = false;
+        let audioContext = null;
+        let oscillator = null;
+        let nextNoteTime = 0;
+        let noteIndex = 0;
+        
+        // 欢快的游戏音乐音符序列 (C 大调)
+        const happyMelody = [
+            523.25, 659.25, 783.99, 1046.50, // C E G C (高音)
+            523.25, 659.25, 783.99, 1046.50,
+            392.00, 493.88, 587.33, 783.99, // G B D G
+            392.00, 493.88, 587.33, 783.99,
+            523.25, 587.33, 659.25, 783.99, // C D E G
+            659.25, 783.99, 1046.50, 783.99, // E G C G
+            523.25, 523.25, 523.25, 523.25, // C C C C
+            659.25, 783.99, 1046.50, 783.99  // E G C G
+        ];
         
         const difficultySettings = {
             easy: { rows: 4, cols: 4 },
@@ -442,20 +455,60 @@
             document.getElementById('versionModal').classList.remove('show');
         }
         
+        function playNote(frequency, duration) {
+            if (!audioContext || !musicPlaying) return;
+            
+            const osc = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(frequency, audioContext.currentTime);
+            
+            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+            
+            osc.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            osc.start(audioContext.currentTime);
+            osc.stop(audioContext.currentTime + duration);
+        }
+        
+        function scheduleMusic() {
+            if (!musicPlaying) return;
+            
+            const tempo = 0.15; // 每个音符的时长
+            
+            while (nextNoteTime < audioContext.currentTime + 0.1) {
+                playNote(happyMelody[noteIndex], tempo);
+                noteIndex = (noteIndex + 1) % happyMelody.length;
+                nextNoteTime += tempo;
+            }
+            
+            requestAnimationFrame(scheduleMusic);
+        }
+        
         function toggleMusic() {
-            const music = document.getElementById('bgMusic');
             const btn = document.getElementById('musicBtn');
             
             if (musicPlaying) {
-                music.pause();
+                musicPlaying = false;
                 btn.textContent = '🎵 音乐：关闭';
             } else {
-                music.play().catch(err => {
-                    console.log('自动播放被阻止，需要用户交互');
-                });
+                // 创建音频上下文（需要用户交互）
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
+                
+                musicPlaying = true;
                 btn.textContent = '🎵 音乐：播放中';
+                nextNoteTime = audioContext.currentTime;
+                scheduleMusic();
             }
-            musicPlaying = !musicPlaying;
         }
         
         function startNewGame() {
