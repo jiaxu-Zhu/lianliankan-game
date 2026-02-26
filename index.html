@@ -439,53 +439,52 @@
         function handleCellClick(r, c, cell) {
             if (!gameActive || board[r][c] === null) return;
             
-            // 清除之前的选中
-            if (selectedCell) {
-                selectedCell.classList.remove('selected');
+            // 保存之前选中的单元格信息
+            const prevCell = selectedCell;
+            const prevR = prevCell ? parseInt(prevCell.dataset.row) : -1;
+            const prevC = prevCell ? parseInt(prevCell.dataset.col) : -1;
+            
+            // 清除之前的选中样式
+            if (prevCell) {
+                prevCell.classList.remove('selected');
             }
             
             // 如果点击同一个单元格，取消选中
-            if (selectedCell && selectedCell.dataset.row == r && selectedCell.dataset.col == c) {
+            if (prevR === r && prevC === c) {
                 selectedCell = null;
                 return;
+            }
+            
+            // 如果已经有选中的单元格，检查是否可以配对
+            if (prevCell !== null) {
+                // 检查图标是否相同
+                if (board[prevR][prevC] === board[r][c]) {
+                    // 检查是否可以连接
+                    const path = findPath(prevR, prevC, r, c);
+                    if (path) {
+                        moves++;
+                        score += 10 + Math.max(0, 5 - moves);
+                        updateInfo();
+                        drawPath(path);
+                        
+                        // 延迟消除
+                        setTimeout(() => {
+                            eliminate(prevR, prevC, r, c);
+                            selectedCell = null;
+                            checkWin();
+                        }, 300);
+                        return;
+                    } else {
+                        // 无法连接，切换选中到当前单元格
+                    }
+                } else {
+                    // 图标不同，切换选中到当前单元格
+                }
             }
             
             // 选中当前单元格
             cell.classList.add('selected');
             selectedCell = cell;
-            
-            // 如果有两个选中，检查是否可以连接
-            const prevR = parseInt(selectedCell.dataset.row);
-            const prevC = parseInt(selectedCell.dataset.col);
-            
-            if (prevR === r && prevC === c) return;
-            
-            // 检查图标是否相同
-            if (board[prevR][prevC] === board[r][c]) {
-                // 检查是否可以连接
-                const path = findPath(prevR, prevC, r, c);
-                if (path) {
-                    moves++;
-                    score += 10 + Math.max(0, 5 - moves);
-                    updateInfo();
-                    drawPath(path);
-                    
-                    // 延迟消除
-                    setTimeout(() => {
-                        eliminate(prevR, prevC, r, c);
-                        selectedCell = null;
-                        checkWin();
-                    }, 300);
-                } else {
-                    // 无法连接，抖动提示
-                    cell.classList.remove('selected');
-                    selectedCell = null;
-                }
-            } else {
-                // 图标不同，切换选中
-                selectedCell.classList.remove('selected');
-                selectedCell = cell;
-            }
         }
         
         function findPath(r1, c1, r2, c2) {
