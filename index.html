@@ -25,12 +25,32 @@
             text-align: center;
             color: white;
             margin-bottom: 10px;
+            position: relative;
         }
         
         .header h1 {
             font-size: 2em;
             margin-bottom: 5px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .version-btn {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.4);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s ease;
+        }
+        
+        .version-btn:hover {
+            background: rgba(255,255,255,0.3);
         }
         
         .info-bar {
@@ -289,6 +309,7 @@
 <body>
     <div class="header">
         <h1>🎮 连连看</h1>
+        <button class="version-btn" onclick="showVersion()">📋 版本</button>
     </div>
     
     <div class="info-bar">
@@ -325,6 +346,23 @@
                 <button class="difficulty-btn" onclick="setDifficulty('hard')">困难</button>
             </div>
             <button class="btn btn-primary" onclick="confirmNewGame()">开始游戏</button>
+        </div>
+    </div>
+    
+    <div class="modal" id="versionModal">
+        <div class="modal-content">
+            <h2>📋 版本信息</h2>
+            <p><strong>当前版本:</strong> v1.3.0</p>
+            <p><strong>更新时间:</strong> 2026-02-27</p>
+            <hr style="margin: 15px 0; border: none; border-top: 1px solid #ddd;">
+            <p><strong>更新内容:</strong></p>
+            <ul style="text-align: left; margin-left: 20px; line-height: 1.8;">
+                <li>优化图标分布算法，让图标更分散</li>
+                <li>修复手机端连线从中心出发的问题</li>
+                <li>添加版本查看功能</li>
+                <li>优化棋盘自适应屏幕大小</li>
+            </ul>
+            <button class="btn btn-primary" onclick="hideVersion()" style="margin-top: 15px;">确定</button>
         </div>
     </div>
 
@@ -375,6 +413,14 @@
         
         function closeModal() {
             document.getElementById('winModal').classList.remove('show');
+        }
+        
+        function showVersion() {
+            document.getElementById('versionModal').classList.add('show');
+        }
+        
+        function hideVersion() {
+            document.getElementById('versionModal').classList.remove('show');
         }
         
         function startNewGame() {
@@ -437,48 +483,37 @@
                 [positions[i], positions[j]] = [positions[j], positions[i]];
             }
             
-            // 成对填充位置，优先选择相邻位置
-            let pairIdx = 0;
+            // 填充位置 - 使用间隔策略让图标分布更分散
             let filledPositions = new Set();
+            let pairIdx = 0;
             
-            // 第一轮：尝试将每对图标放在相邻位置
-            while (pairIdx < totalPairs && positions.length - filledPositions.size >= 2) {
-                let placed = false;
+            // 第一轮：每隔一个位置放一对，确保分散
+            for (let step = 0; step < positions.length && pairIdx < totalPairs; step += 2) {
+                const pos1 = positions[step];
+                if (filledPositions.has(`${pos1.r},${pos1.c}`)) continue;
                 
-                // 多次尝试找到相邻位置
-                for (let attempt = 0; attempt < 50 && !placed; attempt++) {
-                    for (const pos of positions) {
-                        if (filledPositions.has(`${pos.r},${pos.c}`)) continue;
-                        
-                        // 检查四个方向是否有空位
-                        const neighbors = [
-                            {r: pos.r - 1, c: pos.c},
-                            {r: pos.r + 1, c: pos.c},
-                            {r: pos.r, c: pos.c - 1},
-                            {r: pos.r, c: pos.c + 1}
-                        ];
-                        
-                        for (const neighbor of neighbors) {
-                            const key = `${neighbor.r},${neighbor.c}`;
-                            if (neighbor.r >= 1 && neighbor.r <= rows && 
-                                neighbor.c >= 1 && neighbor.c <= cols &&
-                                !filledPositions.has(key)) {
-                                
-                                // 放置一对
-                                board[pos.r][pos.c] = iconPairs[pairIdx][0];
-                                board[neighbor.r][neighbor.c] = iconPairs[pairIdx][1];
-                                filledPositions.add(`${pos.r},${pos.c}`);
-                                filledPositions.add(key);
-                                pairIdx++;
-                                placed = true;
-                                break;
-                            }
+                // 找一个不相邻的空位
+                let pos2 = null;
+                for (const other of positions) {
+                    const key = `${other.r},${other.c}`;
+                    if (!filledPositions.has(key)) {
+                        // 检查是否相邻（包括对角线）
+                        const isAdjacent = Math.abs(other.r - pos1.r) <= 1 && 
+                                          Math.abs(other.c - pos1.c) <= 1;
+                        if (!isAdjacent) {
+                            pos2 = other;
+                            break;
                         }
-                        if (placed) break;
                     }
                 }
                 
-                if (!placed) break;
+                if (pos2) {
+                    board[pos1.r][pos1.c] = iconPairs[pairIdx][0];
+                    board[pos2.r][pos2.c] = iconPairs[pairIdx][1];
+                    filledPositions.add(`${pos1.r},${pos1.c}`);
+                    filledPositions.add(`${pos2.r},${pos2.c}`);
+                    pairIdx++;
+                }
             }
             
             // 第二轮：如果还有剩余位置，任意配对填充
