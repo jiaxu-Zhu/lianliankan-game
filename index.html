@@ -777,22 +777,23 @@
                 const p1 = path[i];
                 const p2 = path[i + 1];
                 
-                const line = document.createElement('div');
-                line.className = 'line';
-                
+                // 计算中心点坐标
                 const x1 = p1.c * cellWidth + cellWidth / 2;
                 const y1 = p1.r * cellHeight + cellHeight / 2;
                 const x2 = p2.c * cellWidth + cellWidth / 2;
                 const y2 = p2.r * cellHeight + cellHeight / 2;
                 
+                const line = document.createElement('div');
+                line.className = 'line';
+                
                 if (p1.r === p2.r) {
-                    // 水平线
+                    // 水平线 - 从中心到中心
                     line.style.height = '4px';
                     line.style.width = Math.abs(x2 - x1) + 'px';
                     line.style.left = Math.min(x1, x2) + 'px';
                     line.style.top = (y1 - 2) + 'px';
                 } else {
-                    // 垂直线
+                    // 垂直线 - 从中心到中心
                     line.style.width = '4px';
                     line.style.height = Math.abs(y2 - y1) + 'px';
                     line.style.left = (x1 - 2) + 'px';
