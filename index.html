@@ -22,14 +22,9 @@
         }
         
         .header {
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            text-align: center;
             color: white;
             margin-bottom: 10px;
-            position: relative;
-            min-height: 60px;
-            padding: 0 40px;
         }
         
         .header h1 {
@@ -38,24 +33,29 @@
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
         
+        .footer {
+            position: fixed;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+        }
+        
         .version-btn {
-            position: absolute;
-            right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: rgba(255,255,255,0.2);
-            border: 1px solid rgba(255,255,255,0.4);
+            background: rgba(255,255,255,0.25);
+            border: 1px solid rgba(255,255,255,0.5);
             color: white;
-            padding: 6px 12px;
-            border-radius: 6px;
+            padding: 8px 16px;
+            border-radius: 20px;
             cursor: pointer;
             font-size: 0.9em;
             transition: all 0.2s ease;
-            z-index: 10;
+            backdrop-filter: blur(5px);
         }
         
         .version-btn:hover {
-            background: rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.35);
+            transform: scale(1.05);
         }
         
         .info-bar {
@@ -253,18 +253,13 @@
         }
         
         @media (max-width: 500px) {
-            .header {
-                padding: 0 35px;
-            }
-            
             .header h1 {
                 font-size: 1.3em;
             }
             
             .version-btn {
-                padding: 4px 8px;
-                font-size: 0.8em;
-                right: 5px;
+                padding: 6px 12px;
+                font-size: 0.85em;
             }
             
             .info-bar {
@@ -297,18 +292,13 @@
         }
         
         @media (max-width: 380px) {
-            .header {
-                padding: 0 30px;
-            }
-            
             .header h1 {
                 font-size: 1.1em;
             }
             
             .version-btn {
-                padding: 3px 6px;
-                font-size: 0.7em;
-                right: 5px;
+                padding: 5px 10px;
+                font-size: 0.75em;
             }
             
             .info-bar {
@@ -334,7 +324,6 @@
 <body>
     <div class="header">
         <h1>🎮 连连看</h1>
-        <button class="version-btn" onclick="showVersion()">📋 版本</button>
     </div>
     
     <div class="info-bar">
@@ -377,7 +366,7 @@
     <div class="modal" id="versionModal">
         <div class="modal-content">
             <h2>📋 版本信息</h2>
-            <p><strong>当前版本:</strong> v1.3.0</p>
+            <p><strong>当前版本:</strong> v1.4.0</p>
             <p><strong>更新时间:</strong> 2026-02-27</p>
             <hr style="margin: 15px 0; border: none; border-top: 1px solid #ddd;">
             <p><strong>更新内容:</strong></p>
@@ -386,6 +375,7 @@
                 <li>修复手机端连线从中心出发的问题</li>
                 <li>添加版本查看功能</li>
                 <li>优化棋盘自适应屏幕大小</li>
+                <li>将版本按钮移至页面底部，优化移动端体验</li>
             </ul>
             <button class="btn btn-primary" onclick="hideVersion()" style="margin-top: 15px;">确定</button>
         </div>
@@ -935,5 +925,9 @@
             // 可以添加响应式处理逻辑
         });
     </script>
+    
+    <div class="footer">
+        <button class="version-btn" onclick="showVersion()">📋 版本信息</button>
+    </div>
 </body>
 </html>
