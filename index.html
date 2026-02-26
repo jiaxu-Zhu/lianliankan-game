@@ -67,13 +67,12 @@
             display: grid;
             gap: 2px;
             position: relative;
-            width: 100%;
-            max-width: 500px;
+            width: min(90vw, 90vh, 500px);
+            height: min(90vw, 90vh, 500px);
             margin: 0 auto;
         }
         
         .cell {
-            aspect-ratio: 1;
             background: linear-gradient(145deg, #f0f0f0, #e0e0e0);
             border: none;
             border-radius: 8px;
@@ -81,7 +80,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: clamp(12px, 4vw, 24px);
+            font-size: clamp(10px, 3vw, 20px);
             transition: all 0.2s ease;
             box-shadow: 3px 3px 6px rgba(0,0,0,0.1), -3px -3px 6px rgba(255,255,255,0.8);
         }
@@ -244,7 +243,7 @@
             }
             
             .game-container {
-                padding: 8px;
+                padding: 6px;
             }
             
             .btn {
@@ -269,6 +268,11 @@
             
             .info-bar {
                 font-size: 0.7em;
+                gap: 8px;
+            }
+            
+            .info-item {
+                padding: 4px 8px;
             }
             
             .controls {
