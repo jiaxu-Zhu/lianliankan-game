@@ -407,7 +407,7 @@
                 }
             }
             
-            // 计算可放置的位置（不包括边界）
+            // 收集所有可放置的位置（不包括边界）
             let positions = [];
             for (let r = 1; r <= rows; r++) {
                 for (let c = 1; c <= cols; c++) {
@@ -415,69 +415,80 @@
                 }
             }
             
-            // 打乱位置
+            // 计算需要多少对
+            const totalPairs = Math.floor(positions.length / 2);
+            
+            // 生成成对的图标
+            let iconPairs = [];
+            for (let i = 0; i < totalPairs; i++) {
+                const emoji = emojis[i % emojis.length];
+                iconPairs.push([emoji, emoji]);
+            }
+            
+            // 打乱图标对顺序
+            for (let i = iconPairs.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [iconPairs[i], iconPairs[j]] = [iconPairs[j], iconPairs[i]];
+            }
+            
+            // 打乱位置顺序
             for (let i = positions.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [positions[i], positions[j]] = [positions[j], positions[i]];
             }
             
-            // 成对放置图标，确保每对都能连接
-            let pairCount = 0;
-            const maxPairs = Math.floor(positions.length / 2);
+            // 成对填充位置，优先选择相邻位置
+            let pairIdx = 0;
+            let filledPositions = new Set();
             
-            while (pairCount < maxPairs) {
-                // 选择两个相邻的空位置
+            // 第一轮：尝试将每对图标放在相邻位置
+            while (pairIdx < totalPairs && positions.length - filledPositions.size >= 2) {
                 let placed = false;
-                for (let attempt = 0; attempt < 100 && !placed; attempt++) {
-                    const idx1 = Math.floor(Math.random() * positions.length);
-                    const pos1 = positions[idx1];
-                    
-                    // 检查这个位置是否已经填充
-                    if (board[pos1.r][pos1.c] !== null) continue;
-                    
-                    // 找到相邻的空位置
-                    const neighbors = [
-                        {r: pos1.r - 1, c: pos1.c},
-                        {r: pos1.r + 1, c: pos1.c},
-                        {r: pos1.r, c: pos1.c - 1},
-                        {r: pos1.r, c: pos1.c + 1}
-                    ];
-                    
-                    for (const pos2 of neighbors) {
-                        // 检查是否在有效范围内且为空
-                        if (pos2.r >= 1 && pos2.r <= rows && 
-                            pos2.c >= 1 && pos2.c <= cols &&
-                            board[pos2.r][pos2.c] === null) {
-                            
-                            // 放置一对图标
-                            const emoji = emojis[pairCount % emojis.length];
-                            board[pos1.r][pos1.c] = emoji;
-                            board[pos2.r][pos2.c] = emoji;
-                            pairCount++;
-                            placed = true;
-                            break;
+                
+                // 多次尝试找到相邻位置
+                for (let attempt = 0; attempt < 50 && !placed; attempt++) {
+                    for (const pos of positions) {
+                        if (filledPositions.has(`${pos.r},${pos.c}`)) continue;
+                        
+                        // 检查四个方向是否有空位
+                        const neighbors = [
+                            {r: pos.r - 1, c: pos.c},
+                            {r: pos.r + 1, c: pos.c},
+                            {r: pos.r, c: pos.c - 1},
+                            {r: pos.r, c: pos.c + 1}
+                        ];
+                        
+                        for (const neighbor of neighbors) {
+                            const key = `${neighbor.r},${neighbor.c}`;
+                            if (neighbor.r >= 1 && neighbor.r <= rows && 
+                                neighbor.c >= 1 && neighbor.c <= cols &&
+                                !filledPositions.has(key)) {
+                                
+                                // 放置一对
+                                board[pos.r][pos.c] = iconPairs[pairIdx][0];
+                                board[neighbor.r][neighbor.c] = iconPairs[pairIdx][1];
+                                filledPositions.add(`${pos.r},${pos.c}`);
+                                filledPositions.add(key);
+                                pairIdx++;
+                                placed = true;
+                                break;
+                            }
                         }
+                        if (placed) break;
                     }
                 }
                 
-                if (!placed) {
-                    // 如果尝试多次都无法放置，尝试任意两个空位
-                    let emptyPositions = positions.filter(p => board[p.r][p.c] === null);
-                    if (emptyPositions.length >= 2) {
-                        const idx1 = Math.floor(Math.random() * emptyPositions.length);
-                        const idx2 = Math.floor(Math.random() * emptyPositions.length);
-                        if (idx1 !== idx2) {
-                            const emoji = emojis[pairCount % emojis.length];
-                            board[emptyPositions[idx1].r][emptyPositions[idx1].c] = emoji;
-                            board[emptyPositions[idx2].r][emptyPositions[idx2].c] = emoji;
-                            pairCount++;
-                        } else {
-                            break;
-                        }
-                    } else {
-                        break;
-                    }
-                }
+                if (!placed) break;
+            }
+            
+            // 第二轮：如果还有剩余位置，任意配对填充
+            let remainingPositions = positions.filter(p => !filledPositions.has(`${p.r},${p.c}`));
+            while (remainingPositions.length >= 2 && pairIdx < totalPairs) {
+                const pos1 = remainingPositions.pop();
+                const pos2 = remainingPositions.pop();
+                board[pos1.r][pos1.c] = iconPairs[pairIdx][0];
+                board[pos2.r][pos2.c] = iconPairs[pairIdx][1];
+                pairIdx++;
             }
             
             // 渲染棋盘
