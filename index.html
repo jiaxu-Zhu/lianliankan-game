@@ -366,7 +366,7 @@
     <div class="modal" id="versionModal">
         <div class="modal-content">
             <h2>📋 版本信息</h2>
-            <p><strong>当前版本:</strong> v1.4.0</p>
+            <p><strong>当前版本:</strong> v1.4.1</p>
             <p><strong>更新时间:</strong> 2026-02-27</p>
             <hr style="margin: 15px 0; border: none; border-top: 1px solid #ddd;">
             <p><strong>更新内容:</strong></p>
@@ -376,6 +376,7 @@
                 <li>添加版本查看功能</li>
                 <li>优化棋盘自适应屏幕大小</li>
                 <li>将版本按钮移至页面底部，优化移动端体验</li>
+                <li>修复打乱按钮 bug，保持原有图标不变仅重新排列</li>
             </ul>
             <button class="btn btn-primary" onclick="hideVersion()" style="margin-top: 15px;">确定</button>
         </div>
@@ -568,11 +569,11 @@
             let remainingIcons = [];
             let emptyPositions = [];
             
-            for (let r = 0; r < rows + 2; r++) {
-                for (let c = 0; c < cols + 2; c++) {
+            for (let r = 1; r <= rows; r++) {
+                for (let c = 1; c <= cols; c++) {
                     if (board[r][c] !== null) {
                         remainingIcons.push(board[r][c]);
-                    } else if (r >= 1 && r <= rows && c >= 1 && c <= cols) {
+                    } else {
                         emptyPositions.push({r, c});
                     }
                 }
@@ -583,6 +584,12 @@
                 return;
             }
             
+            // 打乱图标顺序
+            for (let i = remainingIcons.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [remainingIcons[i], remainingIcons[j]] = [remainingIcons[j], remainingIcons[i]];
+            }
+            
             // 清空中间区域
             for (let r = 1; r <= rows; r++) {
                 for (let c = 1; c <= cols; c++) {
@@ -590,66 +597,48 @@
                 }
             }
             
-            // 重新成对放置图标
+            // 重新成对放置图标 - 使用分散策略
             let pairIdx = 0;
             const totalPairs = remainingIcons.length / 2;
+            let filledPositions = new Set();
             
-            while (pairIdx < totalPairs) {
-                let placed = false;
+            // 第一轮：每隔一个位置放一对，确保分散
+            for (let step = 0; step < emptyPositions.length && pairIdx < totalPairs; step += 2) {
+                const pos1 = emptyPositions[step];
+                if (filledPositions.has(`${pos1.r},${pos1.c}`)) continue;
                 
-                // 尝试找到两个相邻的空位置
-                for (let attempt = 0; attempt < 50 && !placed; attempt++) {
-                    for (let r = 1; r <= rows; r++) {
-                        for (let c = 1; c <= cols; c++) {
-                            if (board[r][c] !== null) continue;
-                            
-                            const neighbors = [
-                                {r: r - 1, c: c},
-                                {r: r + 1, c: c},
-                                {r: r, c: c - 1},
-                                {r: r, c: c + 1}
-                            ];
-                            
-                            for (const pos of neighbors) {
-                                if (pos.r >= 1 && pos.r <= rows && 
-                                    pos.c >= 1 && pos.c <= cols &&
-                                    board[pos.r][pos.c] === null) {
-                                    
-                                    const emoji = remainingIcons[pairIdx * 2];
-                                    board[r][c] = emoji;
-                                    board[pos.r][pos.c] = emoji;
-                                    pairIdx++;
-                                    placed = true;
-                                    break;
-                                }
-                            }
-                            if (placed) break;
+                // 找一个不相邻的空位
+                let pos2 = null;
+                for (const other of emptyPositions) {
+                    const key = `${other.r},${other.c}`;
+                    if (!filledPositions.has(key)) {
+                        // 检查是否相邻（包括对角线）
+                        const isAdjacent = Math.abs(other.r - pos1.r) <= 1 && 
+                                          Math.abs(other.c - pos1.c) <= 1;
+                        if (!isAdjacent) {
+                            pos2 = other;
+                            break;
                         }
-                        if (placed) break;
                     }
                 }
                 
-                if (!placed) {
-                    // 如果无法找到相邻位置，任意放置剩余图标
-                    let emptyCells = [];
-                    for (let r = 1; r <= rows; r++) {
-                        for (let c = 1; c <= cols; c++) {
-                            if (board[r][c] === null) {
-                                emptyCells.push({r, c});
-                            }
-                        }
-                    }
-                    
-                    while (emptyCells.length >= 2 && pairIdx < totalPairs) {
-                        const pos1 = emptyCells.shift();
-                        const pos2 = emptyCells.shift();
-                        const emoji = remainingIcons[pairIdx * 2];
-                        board[pos1.r][pos1.c] = emoji;
-                        board[pos2.r][pos2.c] = emoji;
-                        pairIdx++;
-                    }
-                    break;
+                if (pos2) {
+                    board[pos1.r][pos1.c] = remainingIcons[pairIdx * 2];
+                    board[pos2.r][pos2.c] = remainingIcons[pairIdx * 2 + 1];
+                    filledPositions.add(`${pos1.r},${pos1.c}`);
+                    filledPositions.add(`${pos2.r},${pos2.c}`);
+                    pairIdx++;
                 }
+            }
+            
+            // 第二轮：如果还有剩余位置，任意配对填充
+            let remainingPositions = emptyPositions.filter(p => !filledPositions.has(`${p.r},${p.c}`));
+            while (remainingPositions.length >= 2 && pairIdx < totalPairs) {
+                const pos1 = remainingPositions.pop();
+                const pos2 = remainingPositions.pop();
+                board[pos1.r][pos1.c] = remainingIcons[pairIdx * 2];
+                board[pos2.r][pos2.c] = remainingIcons[pairIdx * 2 + 1];
+                pairIdx++;
             }
             
             // 更新显示
